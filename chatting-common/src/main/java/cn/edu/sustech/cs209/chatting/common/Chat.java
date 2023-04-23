@@ -48,13 +48,6 @@ public class Chat {
         members.add(member);
     }
 
-    public String member2String() {
-        String ret = members.toString();
-        ret = ret.replace("[", "");
-        ret = ret.replace("]", "");
-        return ret;
-    }
-
     public String getFirst3Name() {
         StringBuilder res = new StringBuilder(members.get(0).indexOf(0));
         for (int i = 1; i < 3; i++) {

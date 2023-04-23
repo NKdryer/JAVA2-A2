@@ -3,7 +3,6 @@ package cn.edu.sustech.cs209.chatting.server;
 import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.MessageType;
 import cn.edu.sustech.cs209.chatting.common.User;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -84,6 +83,7 @@ public class Main {
                     } else if (clientMsg.getMessageType() == MessageType.GROUP) {
                         String members = clientMsg.getSendTo();
                         String[] group = members.split(", ");
+                        System.out.println("Group: " + Arrays.toString(group));
                         for (String c : group) {
                             if (!c.equals(this.username)) {
                                 try {
@@ -114,7 +114,8 @@ public class Main {
 
         public void sendUserList() {
             try {
-                Message message = new Message(MessageType.BROADCAST, "server", this.username, User.list2String());
+                Message message = new Message(MessageType.BROADCAST,
+                        "server", this.username, User.list2String());
                 outputStream.writeObject(message);
             } catch (IOException e) {
                 e.printStackTrace();

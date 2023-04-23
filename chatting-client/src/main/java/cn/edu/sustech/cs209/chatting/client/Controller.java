@@ -16,10 +16,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class Controller implements Initializable {
     Map<String, Integer> UserChatMap;
@@ -51,7 +51,7 @@ public class Controller implements Initializable {
         Optional<String> input = dialog.showAndWait();
         if (input.isPresent() && !input.get().isEmpty()) {
             /*
-               TODO: Check if there is a user with the same name among the currently logged-in users,
+               TODO: Check if there is a user with same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
             username = input.get();
@@ -112,8 +112,10 @@ public class Controller implements Initializable {
         stage.setScene(new Scene(box));
         stage.showAndWait();
 
-        // TODO: if the current user already chatted with the selected user, just open the chat with that user
-        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected username
+        // TODO: if the current user already chatted with the selected user,
+        //  just open the chat with that user
+        // TODO: otherwise, create a new chat item in the left panel,
+        //  the title should be the selected username
         if ((user.get() != null) && !UserChatMap.containsKey(user.get())) {
             Chat chat = new Chat(Chat.ChatType.PRIVATE, user.get());
             chatList.getItems().add(chat);
@@ -128,7 +130,6 @@ public class Controller implements Initializable {
     /**
      * A new dialog should contain a multi-select list, showing all user's name.
      * You can select several users that will be joined in the group chat, including yourself.
-     * <p>
      * The naming rule for group chats is similar to WeChat:
      * If there are > 3 users: display the first three usernames, sorted in lexicographic order,
      * then use ellipsis with the number of users, for example:
@@ -139,11 +140,15 @@ public class Controller implements Initializable {
     @FXML
     public void createGroupChat() {
         Stage stage = new Stage();
-        ComboBox<String> userSel = new ComboBox<>();
+        VBox vBox = new VBox(10);
 
+        List<CheckBox> checkBoxList = new ArrayList<>();
         User.getUserList().forEach(s -> {
-            if (!Objects.equals(s, this.username))
-                userSel.getItems().add(s);
+            if (!Objects.equals(s, this.username)) {
+                CheckBox checkBox = new CheckBox(s);
+                checkBoxList.add(checkBox);
+                vBox.getChildren().add(checkBox);
+            }
         });
 
         Label selectedMembers = new Label(username);
@@ -152,53 +157,55 @@ public class Controller implements Initializable {
         selectedMembers.setWrapText(true);
         selectedMembers.setMaxSize(400, 100);
 
-        AtomicReference<String> user = new AtomicReference<>();
-        List<String> selected = new ArrayList<>();
-        selected.add(username);
-
         Button addBtn = new Button("Add");
         addBtn.setOnAction(event -> {
-            user.set(userSel.getSelectionModel().getSelectedItem());
-            if (!selected.contains(user.get())) {
-                selected.add(user.get());
-                selected.sort(String::compareToIgnoreCase);
-                selectedMembers.setText(
-                        Arrays.toString(selected.toArray())
-                                .replace("[", "")
-                                .replace("]", "")
-                );
-            }
+            List<String> selected = checkBoxList.stream()
+                    .filter(CheckBox::isSelected)
+                    .map(CheckBox::getText)
+                    .collect(Collectors.toList());
+            selected.add(username);
+            selected.sort(String::compareToIgnoreCase);
+            selectedMembers.setText(
+                    Arrays.toString(selected.toArray())
+                            .replace("[", "")
+                            .replace("]", "")
+            );
         });
 
-        Button okBtn = new Button("OK");
-        okBtn.setOnAction(event -> stage.close());
+        HBox buttonBox = new HBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+        buttonBox.getChildren().addAll(addBtn);
 
-        HBox box = new HBox(10);
-        VBox vBox = new VBox(10);
-        box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(100, 200, 50, 200));
-        box.getChildren().addAll(userSel, addBtn, okBtn);
-        vBox.setAlignment(Pos.CENTER);
-        vBox.getChildren().addAll(box, selectedMembers);
+        Button okBtn = new Button("OK");
+        okBtn.setOnAction(event -> {
+            final String users = selectedMembers.getText();
+            if (!users.equals(username) && !UserChatMap.containsKey(users)) {
+                Chat chat = new Chat(Chat.ChatType.GROUP, users);
+                List<String> selected = checkBoxList.stream()
+                        .filter(CheckBox::isSelected)
+                        .map(CheckBox::getText)
+                        .collect(Collectors.toList());
+                selected.add(username);
+                chat.setMembers(selected);
+                chatList.getItems().add(chat);
+                UserChatMap.put(users, chatList.getItems().indexOf(chat));
+                chatList.getSelectionModel().select(chat);
+            } else if (!users.equals(username) && UserChatMap.containsKey(users)) {
+                chatList.getSelectionModel().select(null);
+                chatList.getSelectionModel().select(UserChatMap.get(users));
+            }
+            stage.close();
+        });
+
+        buttonBox.getChildren().add(okBtn);
+        vBox.getChildren().addAll(buttonBox, selectedMembers);
+
         stage.setScene(new Scene(vBox));
         stage.showAndWait();
-
-        final String users = selectedMembers.getText();
-        if (!users.equals(username) && !UserChatMap.containsKey(users)) {
-            Chat chat = new Chat(Chat.ChatType.GROUP, users);
-            chat.setMembers(selected);
-            chatList.getItems().add(chat);
-            UserChatMap.put(users, chatList.getItems().indexOf(chat));
-            chatList.getSelectionModel().select(chat);
-        } else if (!users.equals(username) && UserChatMap.containsKey(users)) {
-            chatList.getSelectionModel().select(null);
-            chatList.getSelectionModel().select(UserChatMap.get(users));
-        }
     }
 
     /**
      * Sends the message to the <b>currently selected</b> chat.
-     * <p>
      * Blank messages are not allowed.
      * After sending the message, you should clear the text input field.
      */
@@ -206,6 +213,7 @@ public class Controller implements Initializable {
     public void doSendMessage() {
         // TODO
         if (!inputArea.getText().isEmpty() && chatList.getSelectionModel().getSelectedItem() != null) {
+            System.out.println(currentChatType + " " + currentChatWith);
             if (currentChatType == Chat.ChatType.PRIVATE) {
                 Message message = new Message(MessageType.PRIVATE, username, currentChatWith, inputArea.getText());
                 Client.send(message);
@@ -216,7 +224,8 @@ public class Controller implements Initializable {
             } else if (currentChatType == Chat.ChatType.GROUP) {
                 String sentBy = currentChatWith + ":::" + username;
                 Chat chat = chatList.getItems().get(UserChatMap.get(currentChatWith));
-                String sendTo = chat.member2String();
+                String sendTo = currentChatWith;
+                System.out.println(sendTo + "-------------------");
                 Message message = new Message(MessageType.GROUP, sentBy, sendTo, inputArea.getText());
                 Client.send(message);
                 chat.addMessage(new Message(MessageType.GROUP, username, sendTo, inputArea.getText()));
@@ -362,15 +371,21 @@ public class Controller implements Initializable {
                         return;
                     }
 
+                    String s = msg.getSentBy();
+                    if (s.contains(":::")) {
+                        s = s.split(":::")[1];
+                    }
+                    msg.setSentBy(s);
+
                     HBox wrapper = new HBox();
-                    Label nameLabel = new Label(msg.getSentBy());
+                    Label nameLabel = new Label(s);
                     Label msgLabel = new Label(msg.getData());
 
                     nameLabel.setPrefSize(50, 20);
                     nameLabel.setWrapText(true);
                     nameLabel.setStyle("-fx-border-color: black; -fx-border-width: 1px;");
 
-                    if (username.equals(msg.getSentBy())) {
+                    if (username.equals(s)) {
                         wrapper.setAlignment(Pos.TOP_RIGHT);
                         wrapper.getChildren().addAll(msgLabel, nameLabel);
                         msgLabel.setPadding(new Insets(0, 20, 0, 0));
@@ -403,7 +418,8 @@ public class Controller implements Initializable {
                     HBox wrapper = new HBox();
                     Label chatNameLabel = new Label(chat.getChatName());
                     if (chat.getMembers().size() > 3) {
-                        chatNameLabel.setText(chat.getFirst3Name() + "..." + "(" + chat.getMembers().size() + ")");
+                        chatNameLabel.setText(chat.getFirst3Name() +
+                                "..." + "(" + chat.getMembers().size() + ")");
                     }
 
                     chatNameLabel.setWrapText(true);
