@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Controller implements Initializable {
-    Map<String, Integer> chatWindowMap;
+    Map<String, Integer> UserChatMap;
 
     @FXML
     ListView<Message> chatContentList;
@@ -68,7 +68,7 @@ public class Controller implements Initializable {
             Client client = new Client(username, this);
             Thread thread = new Thread(client);
             thread.start();
-            chatWindowMap = new HashMap<>();
+            UserChatMap = new HashMap<>();
         } else {
             System.out.println("Invalid username " + input + ", exiting");
             Platform.exit();
@@ -114,14 +114,14 @@ public class Controller implements Initializable {
 
         // TODO: if the current user already chatted with the selected user, just open the chat with that user
         // TODO: otherwise, create a new chat item in the left panel, the title should be the selected username
-        if ((user.get() != null) && !chatWindowMap.containsKey(user.get())) {
+        if ((user.get() != null) && !UserChatMap.containsKey(user.get())) {
             Chat chat = new Chat(Chat.ChatType.PRIVATE, user.get());
             chatList.getItems().add(chat);
-            chatWindowMap.put(user.get(), chatList.getItems().indexOf(chat));
+            UserChatMap.put(user.get(), chatList.getItems().indexOf(chat));
             chatList.getSelectionModel().select(chat);
-        } else if ((user.get() != null) && chatWindowMap.containsKey(user.get())) {
+        } else if ((user.get() != null) && UserChatMap.containsKey(user.get())) {
             chatList.getSelectionModel().select(null);
-            chatList.getSelectionModel().select(chatWindowMap.get(user.get()));
+            chatList.getSelectionModel().select(UserChatMap.get(user.get()));
         }
     }
 
@@ -184,15 +184,15 @@ public class Controller implements Initializable {
         stage.showAndWait();
 
         final String users = selectedMembers.getText();
-        if (!users.equals(username) && !chatWindowMap.containsKey(users)) {
+        if (!users.equals(username) && !UserChatMap.containsKey(users)) {
             Chat chat = new Chat(Chat.ChatType.GROUP, users);
             chat.setMembers(selected);
             chatList.getItems().add(chat);
-            chatWindowMap.put(users, chatList.getItems().indexOf(chat));
+            UserChatMap.put(users, chatList.getItems().indexOf(chat));
             chatList.getSelectionModel().select(chat);
-        } else if (!users.equals(username) && chatWindowMap.containsKey(users)) {
+        } else if (!users.equals(username) && UserChatMap.containsKey(users)) {
             chatList.getSelectionModel().select(null);
-            chatList.getSelectionModel().select(chatWindowMap.get(users));
+            chatList.getSelectionModel().select(UserChatMap.get(users));
         }
     }
 
@@ -209,42 +209,80 @@ public class Controller implements Initializable {
             if (currentChatType == Chat.ChatType.PRIVATE) {
                 Message message = new Message(MessageType.PRIVATE, username, currentChatWith, inputArea.getText());
                 Client.send(message);
-                Chat chat = chatList.getItems().get(chatWindowMap.get(currentChatWith));
+                Chat chat = chatList.getItems().get(UserChatMap.get(currentChatWith));
                 chat.addMessage(message);
-                chatList.getItems().set(chatWindowMap.get(currentChatWith), chat);
-                chatList.getSelectionModel().select(chatWindowMap.get(currentChatWith));
+                chatList.getItems().set(UserChatMap.get(currentChatWith), chat);
+                chatList.getSelectionModel().select(UserChatMap.get(currentChatWith));
             } else if (currentChatType == Chat.ChatType.GROUP) {
                 String sentBy = currentChatWith + ":::" + username;
-                Chat chat = chatList.getItems().get(chatWindowMap.get(currentChatWith));
-                String sendTo = chat.memberString();
+                Chat chat = chatList.getItems().get(UserChatMap.get(currentChatWith));
+                String sendTo = chat.member2String();
                 Message message = new Message(MessageType.GROUP, sentBy, sendTo, inputArea.getText());
                 Client.send(message);
-                chat.addMessage(new Message(MessageType.GROUP,
-                        username, sendTo, inputArea.getText()));
-                chatList.getItems().set(chatWindowMap.get(currentChatWith), chat);
-                chatList.getSelectionModel().select(chatWindowMap.get(currentChatWith));
+                chat.addMessage(new Message(MessageType.GROUP, username, sendTo, inputArea.getText()));
+                chatList.getItems().set(UserChatMap.get(currentChatWith), chat);
+                chatList.getSelectionModel().select(UserChatMap.get(currentChatWith));
             }
             inputArea.clear();
         }
         chatList.getSelectionModel().select(null);
-        chatList.getSelectionModel().select(chatWindowMap.get(currentChatWith));
+        chatList.getSelectionModel().select(UserChatMap.get(currentChatWith));
     }
 
-    public void handleReceive(Message message) {
+    @FXML
+    public void Emoji() {
+        Stage stage = new Stage();
+        stage.setTitle("Emoji Selector");
+
+        // 创建一个 HBox，用于存放 emoji 按钮
+        HBox hbox = new HBox();
+        hbox.setAlignment(Pos.CENTER);
+        hbox.setPadding(new Insets(10));
+        hbox.setSpacing(10);
+
+        // 创建一些 emoji 按钮，并为每个按钮设置 onAction 方法
+        Button button1 = new Button("😊");
+        button1.setOnAction(event -> {
+            inputArea.appendText("😊");
+            stage.close();
+        });
+
+        Button button2 = new Button("😂");
+        button2.setOnAction(event -> {
+            inputArea.appendText("😂");
+            stage.close();
+        });
+
+        Button button3 = new Button("😍");
+        button3.setOnAction(event -> {
+            inputArea.appendText("😍");
+            stage.close();
+        });
+
+        // 将按钮添加到 HBox 中
+        hbox.getChildren().addAll(button1, button2, button3);
+        // 创建一个 Scene，并将 HBox 设置为根节点
+        Scene scene = new Scene(hbox);
+        // 设置 Stage 的 Scene，并显示 Stage
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public void changeGUI(Message message) {
         Platform.runLater(() -> {
             if (message.getMessageType() == MessageType.PRIVATE) {
-                if (chatWindowMap.containsKey(message.getSentBy())) {
-                    Chat chat = chatList.getItems().get(chatWindowMap.get(message.getSentBy()));
+                if (UserChatMap.containsKey(message.getSentBy())) {
+                    Chat chat = chatList.getItems().get(UserChatMap.get(message.getSentBy()));
                     chat.addMessage(message);
-                    chatList.getItems().set(chatWindowMap.get(message.getSentBy()), chat);
+                    chatList.getItems().set(UserChatMap.get(message.getSentBy()), chat);
                     chatList.getSelectionModel().select(null);
-                    chatList.getSelectionModel().select(chatWindowMap.get(message.getSentBy()));
+                    chatList.getSelectionModel().select(UserChatMap.get(message.getSentBy()));
                 } else {
                     Chat chat = new Chat(Chat.ChatType.PRIVATE, message.getSentBy());
                     chat.addMember(message.getSentBy());
                     chat.addMessage(message);
                     chatList.getItems().add(chat);
-                    chatWindowMap.put(message.getSentBy(), chatList.getItems().indexOf(chat));
+                    UserChatMap.put(message.getSentBy(), chatList.getItems().indexOf(chat));
                     chatList.getSelectionModel().select(null);
                     chatList.getSelectionModel().select(chat);
                 }
@@ -252,22 +290,28 @@ public class Controller implements Initializable {
                 String groupName = message.getSentBy().split(":::")[0];
                 String senderName = message.getSentBy().split(":::")[1];
                 message.setSentBy(senderName);
-                if (chatWindowMap.containsKey(groupName)) {
-                    Chat chat = chatList.getItems().get(chatWindowMap.get(groupName));
+                if (UserChatMap.containsKey(groupName)) {
+                    Chat chat = chatList.getItems().get(UserChatMap.get(groupName));
                     chat.setMembers(Arrays.asList(message.getSendTo().split(", ")));
                     chat.addMessage(message);
-                    chatList.getItems().set(chatWindowMap.get(groupName), chat);
+                    chatList.getItems().set(UserChatMap.get(groupName), chat);
                     chatList.getSelectionModel().select(null);
-                    chatList.getSelectionModel().select(chatWindowMap.get(groupName));
+                    chatList.getSelectionModel().select(UserChatMap.get(groupName));
                 } else {
                     Chat chat = new Chat(Chat.ChatType.GROUP, groupName);
                     chat.setMembers(Arrays.asList(message.getSendTo().split(", ")));
                     chat.addMessage(message);
                     chatList.getItems().add(chat);
-                    chatWindowMap.put(groupName, chatList.getItems().indexOf(chat));
+                    UserChatMap.put(groupName, chatList.getItems().indexOf(chat));
                     chatList.getSelectionModel().select(null);
                     chatList.getSelectionModel().select(chat);
                 }
+            } else if (message.getMessageType() == MessageType.DISCONNECTED) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Warning");
+                alert.setHeaderText("Server Disconnected");
+                alert.setContentText("Server Disconnected");
+                alert.showAndWait();
             }
         });
     }
@@ -288,6 +332,16 @@ public class Controller implements Initializable {
         vBox.setAlignment(Pos.CENTER);
         stage.setScene(new Scene(vBox));
         stage.showAndWait();
+    }
+
+    public void alert() {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Warning");
+            alert.setHeaderText("Server Disconnected");
+            alert.setContentText("Server Disconnected");
+            alert.showAndWait();
+        });
     }
 
     /**
@@ -345,11 +399,11 @@ public class Controller implements Initializable {
                         setGraphic(null);
                         return;
                     }
-                    // TODO: member>=3
+
                     HBox wrapper = new HBox();
                     Label chatNameLabel = new Label(chat.getChatName());
                     if (chat.getMembers().size() > 3) {
-                        chatNameLabel.setText(chat.getThree() + "..." + "(" + chat.getMembers().size() + ")");
+                        chatNameLabel.setText(chat.getFirst3Name() + "..." + "(" + chat.getMembers().size() + ")");
                     }
 
                     chatNameLabel.setWrapText(true);

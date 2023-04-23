@@ -12,52 +12,47 @@ import java.util.Arrays;
 
 public class Client implements Runnable {
     public String username;
-    private Socket socket;
+    private Socket clientSocket;
     private ObjectInputStream inputStream;
     private static ObjectOutputStream outputStream;
     private final Controller controller;
-
-    @Override
-    public void run() {
-        try {
-            connect();
-            while (socket.isConnected()) {
-                System.out.println("Waiting for message");
-                Message message = (Message) inputStream.readObject();
-                System.out.println("Received message: " + message.getData());
-                if (message.getMessageType() == MessageType.NOTIFICATION) {
-                    User.setUserList(Arrays.asList(message.getData().split(", ")));
-                    this.controller.setCurrentOnlineCnt();
-                    System.out.println(User.getUserList());
-                } else if (message.getMessageType() == MessageType.PRIVATE) {
-                    this.controller.handleReceive(message);
-                } else if (message.getMessageType() == MessageType.GROUP) {
-                    this.controller.handleReceive(message);
-                }
-            }
-        } catch (ClassNotFoundException | IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public Client(String username, Controller controller) {
         this.username = username;
         this.controller = controller;
         try {
-            this.socket = new Socket("localhost", 9091);
-            outputStream = new ObjectOutputStream(this.socket.getOutputStream());
-            this.inputStream = new ObjectInputStream(this.socket.getInputStream());
+            this.clientSocket = new Socket("localhost", 9091);
+            outputStream = new ObjectOutputStream(this.clientSocket.getOutputStream());
+            this.inputStream = new ObjectInputStream(this.clientSocket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void connect() throws IOException {
-        System.out.println("Try to connect to server");
-        Message msg = new Message(MessageType.CONNECTED, this.username, "server", "connected to server");
-        outputStream.writeObject(msg);
-        outputStream.flush();
-        System.out.println("Connected to server");
+    @Override
+    public void run() {
+        try {
+            System.out.println("Try to connect to server");
+            Message msg = new Message(MessageType.CONNECTED, this.username, "server", "connecting");
+            outputStream.writeObject(msg);
+            outputStream.flush();
+            System.out.println("Connected to server");
+
+            while (clientSocket.isConnected()) {
+                System.out.println("Client is waiting for message");
+                Message message = (Message) inputStream.readObject();
+                System.out.println("Received message: '" + message.getData() + "' from " + message.getSentBy());
+                if (message.getMessageType() == MessageType.BROADCAST) {
+                    User.setUserList(Arrays.asList(message.getData().split(", ")));
+                    this.controller.setCurrentOnlineCnt();
+                    System.out.println("Current User: " + User.getUserList());
+                } else
+                    this.controller.changeGUI(message);
+            }
+        } catch (ClassNotFoundException | IOException e) {
+            this.controller.alert();
+            e.printStackTrace();
+        }
     }
 
     public static void send(Message message) {

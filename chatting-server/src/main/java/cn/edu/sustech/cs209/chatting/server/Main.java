@@ -14,10 +14,10 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        System.out.println("Starting server");
+        System.out.println("Server is starting");
         ServerSocket serverSocket = new ServerSocket(9091);
         Main server = new Main(serverSocket);
-        server.keepListen();
+        server.Listening();
     }
 
     private final Map<String, ClientHandler> client_list;
@@ -28,16 +28,25 @@ public class Main {
         this.client_list = new HashMap<>();
     }
 
-    public void keepListen() {
-        System.out.println("The Server is listening for client...");
+    public void Listening() {
+        System.out.println("Server is listening for client");
         while (true) {
             try {
                 Socket socket = this.serverSocket.accept();
-                System.out.println("Client connected: " + socket.getInetAddress().getHostAddress());
                 ClientHandler clientHandler = new ClientHandler(socket);
-                System.out.println("ClientHandler created");
                 clientHandler.start();
+                System.out.println("ClientHandler" + clientHandler.username + " is created");
             } catch (IOException e) {
+                System.out.println("Server shutting down");
+                for (ClientHandler clientHandler : client_list.values()) {
+                    try {
+                        Message msg = new Message(MessageType.DISCONNECTED, "server",
+                                clientHandler.username, "server shutting down");
+                        clientHandler.outputStream.writeObject(msg);
+                    } catch (IOException io) {
+                        io.printStackTrace();
+                    }
+                }
                 e.printStackTrace();
                 break;
             }
@@ -62,33 +71,30 @@ public class Main {
         public void run() {
             while (true) {
                 try {
-                    System.out.println("Waiting for message");
+                    System.out.println("Server is waiting for message");
                     Message clientMsg = (Message) inputStream.readObject();
                     System.out.println("Received message: " + clientMsg.getData());
                     if (clientMsg.getMessageType() == MessageType.CONNECTED) {
+                        System.out.println(clientMsg.getSentBy() + " send to " + clientMsg.getSendTo() + ": " + clientMsg.getData());
                         this.username = clientMsg.getSentBy();
-                        System.out.println(clientMsg.getSentBy() + " " + clientMsg.getSendTo() + " " + clientMsg.getData());
                         User.addUser(this.username);
-                        System.out.println(User.listString());
                         client_list.put(this.username, this);
+                        System.out.println("Current User: " + User.list2String());
                         client_list.forEach((s, clientService) -> clientService.sendUserList());
-                    } else if (clientMsg.getMessageType() == MessageType.USER) {
-                        sendUserList();
-                    } else if (clientMsg.getMessageType() == MessageType.PRIVATE) {
-                        sendTo(clientMsg.getSendTo(), clientMsg);
                     } else if (clientMsg.getMessageType() == MessageType.GROUP) {
                         String members = clientMsg.getSendTo();
-                        List<String> group = Arrays.asList(members.split(", "));
-                        group.forEach(s -> {
-                            if (!s.equals(this.username)) {
+                        String[] group = members.split(", ");
+                        for (String c : group) {
+                            if (!c.equals(this.username)) {
                                 try {
-                                    sendTo(s, clientMsg);
+                                    sendTo(c, clientMsg);
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
                             }
-                        });
-                    }
+                        }
+                    } else if (clientMsg.getMessageType() == MessageType.PRIVATE)
+                        sendTo(clientMsg.getSendTo(), clientMsg);
                 } catch (IOException | ClassNotFoundException e) {
                     System.out.println("Client " + this.username + " disconnected!");
                     client_list.remove(username);
@@ -101,18 +107,14 @@ public class Main {
 
         public synchronized void sendTo(String username, Message message) throws IOException {
             if (client_list.containsKey(username)) {
-                ClientHandler service = client_list.get(username);
-                service.send(message);
+                ClientHandler c = client_list.get(username);
+                c.outputStream.writeObject(message);
             }
         }
 
-        public synchronized void send(Message message) throws IOException {
-            outputStream.writeObject(message);
-        }
-
         public void sendUserList() {
-            Message message = new Message(MessageType.NOTIFICATION, "server", this.username, User.listString());
             try {
+                Message message = new Message(MessageType.BROADCAST, "server", this.username, User.list2String());
                 outputStream.writeObject(message);
             } catch (IOException e) {
                 e.printStackTrace();

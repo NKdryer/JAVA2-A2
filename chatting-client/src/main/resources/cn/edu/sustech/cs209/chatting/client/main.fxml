@@ -1,44 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+
+<!-- 根元素是一个VBox容器，设置了高度和宽度 -->
+<VBox prefHeight="650.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
+
+    <!-- 聊天菜单 -->
     <MenuBar VBox.vgrow="NEVER">
         <Menu mnemonicParsing="false" text="Chat">
             <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat"/>
             <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat"/>
         </Menu>
+        <Menu mnemonicParsing="false" text="User">
+            <MenuItem mnemonicParsing="false" onAction="#doOnlineShow" text="Online User List"/>
+        </Menu>
     </MenuBar>
+
+    <!-- 分割窗格，左侧为聊天列表，右侧为聊天内容和输入框 -->
     <SplitPane dividerPositions="0.25" focusTraversable="true" VBox.vgrow="ALWAYS">
+        <!-- 聊天列表 -->
         <ListView fx:id="chatList" prefHeight="200.0" prefWidth="200.0"/>
+
+        <!-- 右侧：聊天内容和输入框 -->
         <SplitPane dividerPositions="0.85, 0.5" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
+            <!-- 聊天内容 -->
             <ListView fx:id="chatContentList" prefHeight="200.0" prefWidth="200.0"/>
+
+            <!-- 输入框和发送按钮 -->
             <HBox prefHeight="100.0" prefWidth="200.0">
                 <TextArea fx:id="inputArea" prefHeight="138.0" prefWidth="624.0" HBox.hgrow="ALWAYS"/>
                 <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage"
                         text="Send" HBox.hgrow="ALWAYS"/>
+                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false"
+                        fx:id="Emoji" text="Emoji" onAction="#Emoji" HBox.hgrow="ALWAYS"/>
             </HBox>
         </SplitPane>
     </SplitPane>
+
+    <!-- 底部：当前用户、在线用户数量和显示在线用户列表的标签 -->
     <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
         <padding>
             <Insets bottom="3.0" left="3.0" right="3.0" top="3.0"/>
         </padding>
+
+        <!-- 当前用户 -->
         <Label fx:id="currentUsername" maxHeight="1.7976931348623157E308"
                text="Current User: USERNAME" HBox.hgrow="ALWAYS">
             <font>
-                <Font size="11.0" fx:id="x3"/>
+                <Font size="11.0"/>
             </font>
             <textFill>
-                <Color blue="0.625" green="0.625" red="0.625" fx:id="x4"/>
+                <Color blue="0.625" green="0.625" red="0.625"/>
             </textFill>
         </Label>
+
+        <!-- 右侧填充 -->
         <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="currentOnlineCnt" onMouseClicked="#doOnlineShow" font="$x3" text="Online: 1" textFill="$x4"
-               HBox.hgrow="NEVER"/>
+
+        <!-- 在线用户数量和显示在线用户列表的标签 -->
+        <Label fx:id="currentOnlineCnt" onMouseClicked="#doOnlineShow" text="Online: 1" HBox.hgrow="NEVER"/>
     </HBox>
 </VBox>

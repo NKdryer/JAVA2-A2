@@ -1,7 +1,6 @@
 package cn.edu.sustech.cs209.chatting.common;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class User {
@@ -23,8 +22,8 @@ public class User {
         User.userList.remove(username);
     }
 
-    public static synchronized String listString() {
-        String ret = Arrays.toString(userList.toArray());
+    public static synchronized String list2String() {
+        String ret = userList.toString();
         ret = ret.replace("[", "");
         ret = ret.replace("]", "");
         return ret;

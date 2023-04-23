@@ -7,9 +7,9 @@ public class Message implements Serializable {
 
     private String sendTo;
 
-    private String data;
+    private final String data;
 
-    private MessageType messageType;
+    private final MessageType messageType;
 
     public Message(MessageType messageType, String sentBy, String sendTo, String data) {
         this.messageType = messageType;
@@ -18,35 +18,24 @@ public class Message implements Serializable {
         this.data = data;
     }
 
-    public String getSentBy() {
-        return sentBy;
-    }
-
     public void setSentBy(String sendBy) {
         this.sendTo = sendBy;
+    }
+
+    public String getSentBy() {
+        return sentBy;
     }
 
     public String getSendTo() {
         return sendTo;
     }
 
-    public void setSendTo(String sendTo) {
-        this.sendTo = sendTo;
-    }
-
     public String getData() {
         return data;
-    }
-
-    public void setData(String data) {
-        this.data = data;
     }
 
     public MessageType getMessageType() {
         return messageType;
     }
 
-    public void setMessageType(MessageType messageType) {
-        this.messageType = messageType;
-    }
 }
